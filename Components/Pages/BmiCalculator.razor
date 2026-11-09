@@ -1,0 +1,98 @@
+@page "/"
+@page "/bmi"
+@rendermode InteractiveServer
+@using BmiBlazorApp.Models
+@using BmiBlazorApp.Services
+@inject BmiService BmiService
+
+<h3>Калькулятор ИМТ (Blazor)</h3>
+
+<div style="margin-bottom: 20px;">
+    <label>Рост (см): </label>
+    <input type="number" @bind="height" step="0.1" />
+    
+    <label style="margin-left: 10px;">Вес (кг): </label>
+    <input type="number" @bind="weight" step="0.1" />
+    
+    <button @onclick="AddRecord" style="margin-left: 10px;">Рассчитать</button>
+</div>
+
+@if (records != null && records.Count > 0)
+{
+    <table border="1" cellpadding="5">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Рост</th>
+                <th>Вес</th>
+                <th>ИМТ</th>
+                <th>Категория</th>
+                <th>Действие</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var record in records)
+            {
+                <tr>
+                    <td>@record.Id</td>
+                    <td>@record.Height</td>
+                    <td>@record.Weight</td>
+                    <td>@record.Bmi.ToString("F2")</td>
+                    <td>@record.Category</td>
+                    <td>
+                        <button @onclick="() => DeleteRecord(record.Id)">Удалить</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>Записей пока нет. Введите данные и нажмите "Рассчитать".</p>
+}
+
+@code {
+    private double? height;
+    private double? weight;
+    private List<BmiRecord> records = new();
+
+    protected override void OnInitialized()
+    {
+        LoadRecords();
+    }
+
+    private void AddRecord()
+    {
+        // Проверяем, что значения не null и больше нуля
+        if (height.HasValue && weight.HasValue && height.Value > 0 && weight.Value > 0)
+        {
+            BmiService.Create(height.Value, weight.Value);
+            
+            // Очищаем поля
+            height = null;
+            weight = null;
+            
+            // Обновляем список
+            LoadRecords();
+            
+            // ПРИНУДИТЕЛЬНО заставляем Blazor перерисовать страницу
+            StateHasChanged();
+        }
+    }
+
+    private void DeleteRecord(int id)
+    {
+        BmiService.Delete(id);
+        LoadRecords();
+        
+        // ПРИНУДИТЕЛЬНО заставляем Blazor перерисовать страницу
+        StateHasChanged();
+    }
+
+    private void LoadRecords()
+    {
+        // Обязательно создаем новый экземпляр списка, иначе Blazor не заметит изменений
+        records = new List<BmiRecord>(BmiService.GetAll());
+    }
+}
